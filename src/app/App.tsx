@@ -82,7 +82,7 @@ export default function App() {
 
   const isNavActive = (id: string) => currentPage === id || (currentPage === "detail" && id === "home");
 
-  const NAV_ITEMS = ALL_NAV_ITEMS.filter((item) => item.roles.includes(user.role));
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((item) => (item.roles as readonly Role[]).includes(user.role));
 
   return (
     <div className="min-h-screen bg-background">
