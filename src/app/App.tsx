@@ -1,0 +1,213 @@
+import { useState } from "react";
+import { Trophy, CalendarDays, Users, PlusCircle, ShieldCheck, Menu, X, Bell, Search, LogOut } from "lucide-react";
+import { HomePage } from "./components/HomePage";
+import { CalendarPage } from "./components/CalendarPage";
+import { DetailPage } from "./components/DetailPage";
+import { TeamFinderPage } from "./components/TeamFinderPage";
+import { SubmitPage } from "./components/SubmitPage";
+import { AdminPage } from "./components/AdminPage";
+import { Competition, competitions as initialCompetitions } from "./components/data";
+import { LoginPage } from "./components/LoginPage";
+
+type Page = "home" | "calendar" | "team" | "submit" | "admin" | "detail";
+type Role = "mahasiswa" | "admin";
+
+interface UserState {
+  role: Role;
+  name: string;
+  initials: string;
+  description: string;
+}
+
+const ALL_NAV_ITEMS = [
+  { id: "home", label: "Beranda", icon: Trophy, roles: ["mahasiswa", "admin"] },
+  { id: "calendar", label: "Kalender", icon: CalendarDays, roles: ["mahasiswa", "admin"] },
+  { id: "team", label: "Cari Tim", icon: Users, roles: ["mahasiswa"] },
+  { id: "submit", label: "Ajukan Lomba", icon: PlusCircle, roles: ["mahasiswa"] },
+  { id: "submit", label: "Tambahkan Lomba", icon: PlusCircle, roles: ["admin"] },
+  { id: "admin", label: "Admin Panel", icon: ShieldCheck, roles: ["admin"] },
+] as const;
+
+export default function App() {
+  const [user, setUser] = useState<UserState | null>(null);
+  const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [competitionsList, setCompetitionsList] = useState<Competition[]>(initialCompetitions);
+
+  const addCompetition = (newComp: Omit<Competition, "id" | "savedByUser" | "popular">) => {
+    setCompetitionsList((prev) => [
+      {
+        ...newComp,
+        id: Date.now(),
+        savedByUser: false,
+        popular: false,
+      },
+      ...prev,
+    ]);
+  };
+
+  const handleLogin = (role: Role) => {
+    if (role === "admin") {
+      setUser({ role, name: "Admin Portal", initials: "AD", description: "Administrator" });
+      setCurrentPage("admin");
+    } else {
+      setUser({ role, name: "Ahmad K.", initials: "AK", description: "Informatika – UB" });
+      setCurrentPage("home");
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setCurrentPage("home");
+    setSelectedComp(null);
+  };
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  const navigate = (page: Page) => {
+    setCurrentPage(page);
+    if (page !== "detail") setSelectedComp(null);
+    setMobileOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const openDetail = (c: Competition) => {
+    setSelectedComp(c);
+    setCurrentPage("detail");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const isNavActive = (id: string) => currentPage === id || (currentPage === "detail" && id === "home");
+
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((item) => item.roles.includes(user.role));
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* MARKER-MAKE-KIT-INVOKED */}
+      {/* Top Navigation */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center h-16 gap-4">
+            {/* Logo */}
+            <button onClick={() => navigate(user.role === "admin" ? "admin" : "home")} className="flex items-center gap-2.5 flex-none">
+              <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+                <Trophy className="w-4 h-4 text-white" />
+              </div>
+              <div className="hidden sm:block">
+                <span className="font-bold text-foreground">LombaKu</span>
+                <span className="text-xs text-muted-foreground block -mt-1">{user.role === "admin" ? "Admin Portal" : "Platform Kompetisi Mahasiswa"}</span>
+              </div>
+            </button>
+
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-0.5 mx-auto">
+              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => navigate(id as Page)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
+                    isNavActive(id) ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Right Controls */}
+            <div className="flex items-center gap-2 ml-auto">
+              {user.role === "mahasiswa" && (
+                <>
+                  <button className="hidden md:flex w-9 h-9 rounded-xl border border-border items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
+                    <Search className="w-4 h-4" />
+                  </button>
+                  <button className="relative w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
+                    <Bell className="w-4 h-4" />
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white flex items-center justify-center" style={{ fontSize: "9px" }}>
+                      3
+                    </span>
+                  </button>
+                </>
+              )}
+              <div className="hidden md:flex items-center gap-2 pl-2 border-l border-border">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">{user.initials}</div>
+                <div className="hidden lg:block">
+                  <p className="text-sm font-medium text-foreground leading-none">{user.name}</p>
+                  <p className="text-xs text-muted-foreground">{user.description}</p>
+                </div>
+              </div>
+              <button onClick={handleLogout} className="hidden md:flex w-9 h-9 rounded-xl border border-border items-center justify-center text-red-500 hover:bg-red-50 transition-colors ml-2" title="Logout">
+                <LogOut className="w-4 h-4" />
+              </button>
+              {/* Mobile Hamburger */}
+              <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground">
+                {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Dropdown Menu */}
+          {mobileOpen && (
+            <div className="md:hidden border-t border-border py-3 space-y-1">
+              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => navigate(id as Page)}
+                  className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm transition-all ${isNavActive(id) ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-secondary"}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+              <div className="flex items-center justify-between px-4 py-2.5 border-t border-border mt-2 pt-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">{user.initials}</div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.description}</p>
+                  </div>
+                </div>
+                <button onClick={handleLogout} className="p-2 text-red-500 rounded-lg hover:bg-red-50">
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Page Content */}
+      <main>
+        {currentPage === "home" && <HomePage competitions={competitionsList} onCompetitionClick={openDetail} />}
+        {currentPage === "calendar" && <CalendarPage competitions={competitionsList} onCompetitionClick={openDetail} />}
+        {currentPage === "detail" && selectedComp && <DetailPage competition={selectedComp} onBack={() => navigate("home")} />}
+        {currentPage === "team" && <TeamFinderPage />}
+        {currentPage === "submit" && <SubmitPage userRole={user.role} onAddCompetition={addCompetition} />}
+        {currentPage === "admin" && <AdminPage />}
+      </main>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-2 pb-2 z-40">
+        <div className="flex items-center justify-around py-2">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+            const active = isNavActive(id);
+            return (
+              <button key={id} onClick={() => navigate(id as Page)} className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all ${active ? "text-primary" : "text-muted-foreground"}`}>
+                <Icon className="w-5 h-5" />
+                <span style={{ fontSize: "10px" }} className={active ? "font-medium" : ""}>
+                  {label.split(" ")[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="md:hidden h-16" />
+    </div>
+  );
+}
